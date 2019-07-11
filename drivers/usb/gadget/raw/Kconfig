@@ -1,0 +1,5 @@
+config USB_RAW_GADGET
+	tristate "USB Raw Gadget"
+	depends on DEBUG_FS
+	help
+	  TODO: USB Raw Gadget
