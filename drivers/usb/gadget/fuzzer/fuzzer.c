@@ -26,7 +26,9 @@ MODULE_DESCRIPTION(DRIVER_DESC);
 MODULE_AUTHOR("Andrey Konovalov");
 MODULE_LICENSE("GPL");
 
-#if 0
+#define DEBUG 0
+
+#if DEBUG
 #define print_debug(fmt, args...) pr_err(fmt, ##args)
 #else
 #define print_debug(fmt, args...)
@@ -239,192 +241,6 @@ static void dev_put(struct fuzzer_dev *dev)
 
 /*----------------------------------------------------------------------*/
 
-static void fuzzer_ctrl_log(const struct usb_ctrlrequest *ctrl, int vendor)
-{
-	print_debug("uf: fuzzer_ctrl_log: bRequestType: 0x%x (%s), bRequest: 0x%x, wValue: 0x%x, wIndex: 0x%x, wLength: %d\n",
-		ctrl->bRequestType, (ctrl->bRequestType & USB_DIR_IN) ? "IN" : "OUT",
-		ctrl->bRequest, ctrl->wValue, ctrl->wIndex, ctrl->wLength);
-
-	switch (ctrl->bRequestType & USB_TYPE_MASK) {
-	case USB_TYPE_STANDARD:
-		print_debug("uf: fuzzer_ctrl_log: type = USB_TYPE_STANDARD\n");
-		break;
-	case USB_TYPE_CLASS:
-		print_debug("uf: fuzzer_ctrl_log: type = USB_TYPE_CLASS\n");
-		break;
-	case USB_TYPE_VENDOR:
-		print_debug("uf: fuzzer_ctrl_log: type = USB_TYPE_VENDOR\n");
-		break;
-	default:
-		print_debug("uf: fuzzer_ctrl_log: type = unknown = %d\n", (int)ctrl->bRequestType);
-		break;
-	}
-
-	if ((ctrl->bRequestType & USB_TYPE_MASK) == USB_TYPE_CLASS) {
-		if (vendor == 0x08ca) { // USB_VENDOR_ID_AIPTEK
-			switch (ctrl->bRequest) {
-			case 0x01: // USB_REQ_GET_REPORT
-				print_debug("uf: fuzzer_ctrl_log: req = AIPTEK/USB_REQ_GET_REPORT\n");
-				return;
-			case 0x09: // USB_REQ_SET_REPORT
-				print_debug("uf: fuzzer_ctrl_log: req = AIPTEK/USB_REQ_SET_REPORT\n");
-				return;
-			}
-		}
-	}
-
-	// HID class requests.
-	if ((ctrl->bRequestType & USB_TYPE_MASK) == USB_TYPE_STANDARD) {
-		switch (ctrl->bRequest) {
-		case USB_REQ_GET_DESCRIPTOR:
-			print_debug("uf: fuzzer_ctrl_log: req = USB_REQ_GET_DESCRIPTOR\n");
-			switch (ctrl->wValue >> 8) {
-			case HID_DT_HID:
-				print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = HID_DT_HID\n");
-				return;
-			case HID_DT_REPORT:
-				print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = HID_DT_REPORT\n");
-				return;
-			case HID_DT_PHYSICAL:
-				print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = HID_DT_PHYSICAL\n");
-				return;
-			}
-		}
-	}
-
-	// CDC & HUB classes requests.
-	if ((ctrl->bRequestType & USB_TYPE_MASK) == USB_TYPE_CLASS) {
-		switch (ctrl->bRequest) {
-		case USB_CDC_GET_NTB_PARAMETERS:
-			print_debug("uf: fuzzer_ctrl_log: req = USB_CDC_GET_NTB_PARAMETERS\n");
-			return;
-		case USB_CDC_SET_CRC_MODE:
-			print_debug("uf: fuzzer_ctrl_log: req = USB_CDC_SET_CRC_MODE\n");
-			return;
-		case HUB_SET_DEPTH:
-			print_debug("uf: fuzzer_ctrl_log: req = HUB_SET_DEPTH\n");
-			return;
-		}
-	}
-
-	if ((ctrl->bRequestType & USB_TYPE_MASK) != USB_TYPE_STANDARD) {
-		print_debug("uf: fuzzer_ctrl_log: req = unknown = 0x%x\n", (int)ctrl->bRequest);
-		return;
-	}
-
-	switch (ctrl->bRequest) {
-	case USB_REQ_GET_DESCRIPTOR:
-		print_debug("uf: fuzzer_ctrl_log: req = USB_REQ_GET_DESCRIPTOR\n");
-		switch (ctrl->wValue >> 8) {
-		case USB_DT_DEVICE:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_DEVICE\n");
-			break;
-		case USB_DT_CONFIG:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_CONFIG, index = %d\n", (int)(ctrl->wValue & 0xff));
-			break;
-		case USB_DT_STRING:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_STRING\n");
-			break;
-		case USB_DT_INTERFACE:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_INTERFACE\n");
-			break;
-		case USB_DT_ENDPOINT:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_ENDPOINT\n");
-			break;
-		case USB_DT_DEVICE_QUALIFIER:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_DEVICE_QUALIFIER\n");
-			break;
-		case USB_DT_OTHER_SPEED_CONFIG:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_OTHER_SPEED_CONFIG\n");
-			break;
-		case USB_DT_INTERFACE_POWER:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_INTERFACE_POWER\n");
-			break;
-		case USB_DT_OTG:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_OTG\n");
-			break;
-		case USB_DT_DEBUG:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_DEBUG\n");
-			break;
-		case USB_DT_INTERFACE_ASSOCIATION:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_INTERFACE_ASSOCIATION\n");
-			break;
-		case USB_DT_SECURITY:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_SECURITY\n");
-			break;
-		case USB_DT_KEY:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_KEY\n");
-			break;
-		case USB_DT_ENCRYPTION_TYPE:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_ENCRYPTION_TYPE\n");
-			break;
-		case USB_DT_BOS:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_BOS\n");
-			break;
-		case USB_DT_DEVICE_CAPABILITY:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_DEVICE_CAPABILITY\n");
-			break;
-		case USB_DT_WIRELESS_ENDPOINT_COMP:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_WIRELESS_ENDPOINT_COMP\n");
-			break;
-		case USB_DT_WIRE_ADAPTER:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_WIRE_ADAPTER\n");
-			break;
-		case USB_DT_RPIPE:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_RPIPE\n");
-			break;
-		case USB_DT_CS_RADIO_CONTROL:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_CS_RADIO_CONTROL\n");
-			break;
-		case USB_DT_PIPE_USAGE:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_PIPE_USAGE\n");
-			break;
-		case USB_DT_SS_ENDPOINT_COMP:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_SS_ENDPOINT_COMP\n");
-			break;
-		case USB_DT_SSP_ISOC_ENDPOINT_COMP:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_SSP_ISOC_ENDPOINT_COMP\n");
-			break;
-		case USB_DT_HUB:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_HUB\n");
-			break;
-		case USB_DT_SS_HUB:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = USB_DT_SS_HUB\n");
-			break;
-		default:
-			print_debug("uf: fuzzer_ctrl_log: USB_REQ_GET_DESCRIPTOR: type = unknown = 0x%x\n", (int)(ctrl->wValue >> 8));
-			break;
-		}
-		break;
-	case USB_REQ_SET_CONFIGURATION:
-		print_debug("uf: fuzzer_ctrl_log: req = USB_REQ_SET_CONFIGURATION\n");
-		break;
-	case USB_REQ_GET_CONFIGURATION:
-		print_debug("uf: fuzzer_ctrl_log: req = USB_REQ_GET_CONFIGURATION\n");
-		break;
-	case USB_REQ_SET_INTERFACE:
-		print_debug("uf: fuzzer_ctrl_log: req = USB_REQ_SET_INTERFACE\n");
-		break;
-	case USB_REQ_GET_INTERFACE:
-		print_debug("uf: fuzzer_ctrl_log: req = USB_REQ_GET_INTERFACE\n");
-		break;
-	case USB_REQ_GET_STATUS:
-		print_debug("uf: fuzzer_ctrl_log: req = USB_REQ_GET_STATUS\n");
-		break;
-	case USB_REQ_CLEAR_FEATURE:
-		print_debug("uf: fuzzer_ctrl_log: req = USB_REQ_CLEAR_FEATURE\n");
-		break;
-	case USB_REQ_SET_FEATURE:
-		print_debug("uf: fuzzer_ctrl_log: req = USB_REQ_SET_FEATURE\n");
-		break;
-	default:
-		print_debug("uf: fuzzer_ctrl_log: req = unknown = 0x%x\n", (int)ctrl->bRequest);
-		break;
-	}
-}
-
-/*----------------------------------------------------------------------*/
-
 static void gadget_ep0_complete(struct usb_ep *ep, struct usb_request *req)
 {
 	struct fuzzer_dev *dev = req->context;
@@ -506,8 +322,6 @@ static int gadget_setup(struct usb_gadget *gadget,
 	}
 
 	print_debug("uf: gadget_setup\n");
-
-	fuzzer_ctrl_log(ctrl, 0);
 
 	spin_lock_irqsave(&dev->lock, flags);
 	if (dev->state == STATE_DEV_FAILED) {
