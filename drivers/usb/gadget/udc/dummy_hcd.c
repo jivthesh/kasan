@@ -1962,7 +1962,9 @@ return_urb:
 
 		usb_hcd_unlink_urb_from_ep(dummy_hcd_to_hcd(dum_hcd), urb);
 		spin_unlock(&dum->lock);
+		kcov_remote_start(kcov_remote_handle_usb(urb->dev->bus->busnum));
 		usb_hcd_giveback_urb(dummy_hcd_to_hcd(dum_hcd), urb, status);
+		kcov_remote_stop();
 		spin_lock(&dum->lock);
 
 		goto restart;
