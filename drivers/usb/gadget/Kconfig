@@ -513,4 +513,13 @@ source "drivers/usb/gadget/legacy/Kconfig"
 
 endchoice
 
+config USB_RAW_GADGET
+	tristate "USB Raw Gadget"
+	depends on DEBUG_FS
+	help
+	  USB Raw Gadget is a kernel module that provides a userspace interface
+	  for the USB Gadget subsystem. Essentially it allows to emulate USB
+	  devices from userspace. See Documentation/usb/raw-gadget.rst for
+	  details.
+
 endif # USB_GADGET
