@@ -212,7 +212,6 @@ static void usb_kbd_led(struct urb *urb)
 		kbd->led_urb_submitted = false;
 	}
 	spin_unlock_irqrestore(&kbd->leds_lock, flags);
-	
 }
 
 static int usb_kbd_open(struct input_dev *dev)
