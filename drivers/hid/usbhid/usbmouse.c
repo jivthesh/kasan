@@ -53,13 +53,15 @@ static void usb_mouse_irq(struct urb *urb)
 	struct input_dev *dev = mouse->dev;
 	int status;
 
+	kcov_remote_start_usb((u64)urb->dev->bus->busnum);
+
 	switch (urb->status) {
 	case 0:			/* success */
 		break;
 	case -ECONNRESET:	/* unlink */
 	case -ENOENT:
 	case -ESHUTDOWN:
-		return;
+		goto out;
 	/* -EPIPE:  should clear the halt */
 	default:		/* error */
 		goto resubmit;
@@ -83,6 +85,9 @@ resubmit:
 			"can't resubmit intr, %s-%s/input0, status %d\n",
 			mouse->usbdev->bus->bus_name,
 			mouse->usbdev->devpath, status);
+
+out:
+	kcov_remote_stop();
 }
 
 static int usb_mouse_open(struct input_dev *dev)

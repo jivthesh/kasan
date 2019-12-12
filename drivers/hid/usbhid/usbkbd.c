@@ -102,13 +102,15 @@ static void usb_kbd_irq(struct urb *urb)
 	struct usb_kbd *kbd = urb->context;
 	int i;
 
+	kcov_remote_start_usb((u64)urb->dev->bus->busnum);
+
 	switch (urb->status) {
 	case 0:			/* success */
 		break;
 	case -ECONNRESET:	/* unlink */
 	case -ENOENT:
 	case -ESHUTDOWN:
-		return;
+		goto out;
 	/* -EPIPE:  should clear the halt */
 	default:		/* error */
 		goto resubmit;
@@ -148,6 +150,9 @@ resubmit:
 		hid_err(urb->dev, "can't resubmit intr, %s-%s/input0, status %d",
 			kbd->usbdev->bus->bus_name,
 			kbd->usbdev->devpath, i);
+
+out:
+	kcov_remote_stop();
 }
 
 static int usb_kbd_event(struct input_dev *dev, unsigned int type,
@@ -192,6 +197,8 @@ static void usb_kbd_led(struct urb *urb)
 	unsigned long flags;
 	struct usb_kbd *kbd = urb->context;
 
+	kcov_remote_start_usb((u64)urb->dev->bus->busnum);
+
 	if (urb->status)
 		hid_warn(urb->dev, "led urb status %d received\n",
 			 urb->status);
@@ -201,7 +208,7 @@ static void usb_kbd_led(struct urb *urb)
 	if (*(kbd->leds) == kbd->newleds){
 		kbd->led_urb_submitted = false;
 		spin_unlock_irqrestore(&kbd->leds_lock, flags);
-		return;
+		goto out;
 	}
 
 	*(kbd->leds) = kbd->newleds;
@@ -212,7 +219,9 @@ static void usb_kbd_led(struct urb *urb)
 		kbd->led_urb_submitted = false;
 	}
 	spin_unlock_irqrestore(&kbd->leds_lock, flags);
-	
+
+out:
+	kcov_remote_stop();
 }
 
 static int usb_kbd_open(struct input_dev *dev)

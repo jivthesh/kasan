@@ -274,6 +274,8 @@ static void hid_irq_in(struct urb *urb)
 	struct usbhid_device	*usbhid = hid->driver_data;
 	int			status;
 
+	kcov_remote_start_usb((u64)urb->dev->bus->busnum);
+
 	switch (urb->status) {
 	case 0:			/* success */
 		usbhid->retry_delay = 0;
@@ -300,12 +302,12 @@ static void hid_irq_in(struct urb *urb)
 		clear_bit(HID_IN_RUNNING, &usbhid->iofl);
 		set_bit(HID_CLEAR_HALT, &usbhid->iofl);
 		schedule_work(&usbhid->reset_work);
-		return;
+		goto out;
 	case -ECONNRESET:	/* unlink */
 	case -ENOENT:
 	case -ESHUTDOWN:	/* unplug */
 		clear_bit(HID_IN_RUNNING, &usbhid->iofl);
-		return;
+		goto out;
 	case -EILSEQ:		/* protocol error or unplug */
 	case -EPROTO:		/* protocol error or unplug */
 	case -ETIME:		/* protocol error or unplug */
@@ -313,7 +315,7 @@ static void hid_irq_in(struct urb *urb)
 		usbhid_mark_busy(usbhid);
 		clear_bit(HID_IN_RUNNING, &usbhid->iofl);
 		hid_io_error(hid);
-		return;
+		goto out;
 	default:		/* error */
 		hid_warn(urb->dev, "input irq status %d received\n",
 			 urb->status);
@@ -330,6 +332,9 @@ static void hid_irq_in(struct urb *urb)
 			hid_io_error(hid);
 		}
 	}
+
+out:
+	kcov_remote_stop();
 }
 
 static int hid_submit_out(struct hid_device *hid)
@@ -433,6 +438,8 @@ static void hid_irq_out(struct urb *urb)
 	unsigned long flags;
 	int unplug = 0;
 
+	kcov_remote_start_usb((u64)urb->dev->bus->busnum);
+
 	switch (urb->status) {
 	case 0:			/* success */
 		break;
@@ -459,7 +466,7 @@ static void hid_irq_out(struct urb *urb)
 				hid_submit_out(hid) == 0) {
 			/* Successfully submitted next urb in queue */
 			spin_unlock_irqrestore(&usbhid->lock, flags);
-			return;
+			goto out;
 		}
 	}
 
@@ -467,6 +474,9 @@ static void hid_irq_out(struct urb *urb)
 	spin_unlock_irqrestore(&usbhid->lock, flags);
 	usb_autopm_put_interface_async(usbhid->intf);
 	wake_up(&usbhid->wait);
+
+out:
+	kcov_remote_stop();
 }
 
 /*
@@ -479,6 +489,8 @@ static void hid_ctrl(struct urb *urb)
 	struct usbhid_device *usbhid = hid->driver_data;
 	unsigned long flags;
 	int unplug = 0, status = urb->status;
+
+	kcov_remote_start_usb((u64)urb->dev->bus->busnum);
 
 	switch (status) {
 	case 0:			/* success */
@@ -510,7 +522,7 @@ static void hid_ctrl(struct urb *urb)
 				hid_submit_ctrl(hid) == 0) {
 			/* Successfully submitted next urb in queue */
 			spin_unlock_irqrestore(&usbhid->lock, flags);
-			return;
+			goto out;
 		}
 	}
 
@@ -518,6 +530,9 @@ static void hid_ctrl(struct urb *urb)
 	spin_unlock_irqrestore(&usbhid->lock, flags);
 	usb_autopm_put_interface_async(usbhid->intf);
 	wake_up(&usbhid->wait);
+
+out:
+	kcov_remote_stop();
 }
 
 static void __usbhid_submit_report(struct hid_device *hid, struct hid_report *report,
