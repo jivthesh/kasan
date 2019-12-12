@@ -38,6 +38,7 @@
 #include <linux/usb/gadget.h>
 #include <linux/usb/hcd.h>
 #include <linux/scatterlist.h>
+#include <linux/kcov.h>
 
 #include <asm/byteorder.h>
 #include <linux/io.h>
